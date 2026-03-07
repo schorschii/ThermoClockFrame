@@ -87,8 +87,8 @@ void setup() {
   bool setClockTime = false; ///////////////////
   if(setClockTime) {
     Serial.println("Setting real-time clock time!");
-    t.hour=23; t.min=3; t.sec=50;
-    t.mday=7; t.mon=3; t.year=2026;
+    t.hour=22; t.min=59; t.sec=55;
+    t.mday=31; t.mon=3; t.year=2026;
     DS3231_set(t);
   }
 
@@ -145,6 +145,13 @@ bool isInDst(int year, int month, int day, int hour) {
     return true;
   else
     return false;
+}
+
+int maxMonthDay(int month) {
+  if(month == 1 || month == 3 || month == 5 || month == 7 || month == 9 || month == 11)
+    return 31;
+  else
+    return 30;
 }
 
 void loop() {
@@ -237,6 +244,14 @@ void loop() {
       hours = 0;
       day += 1;
     }
+    if(day > maxMonthDay(month)) {
+      day = 1;
+      month += 1;
+    }
+    if(month > 12) {
+      month = 1;
+      year += 1;
+    }
 
   // If the seconds go below 0 then the minutes should decrease and
   // the seconds should wrap back to 59.
@@ -253,6 +268,14 @@ void loop() {
     if(hours < 0) {
       hours = 23;
       day -= 1;
+    }
+    if(day < 1) {
+      day = maxMonthDay(month - 1);
+      month -= 1;
+    }
+    if(month < 1) {
+      month = 12;
+      year -= 1;
     }
 
   // Show the time on the display by turning it into a numeric
