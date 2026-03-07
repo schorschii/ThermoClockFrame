@@ -16,7 +16,8 @@
 #define BTN_PLUS  0  // button increase minutes
 #define BTN_MINUS 0  // button decrease minutes
 
-#define TIME_24_HOUR      true
+#define TIME_24_HOUR true
+#define TIME_ZONE    1 // (0=UTC, 1=MEZ)
 
 TM1637Display display_d(CLK_D, DIO_D);
 TM1637Display display_c(CLK_C, DIO_C);
@@ -133,28 +134,17 @@ void readTime() {
   }
 }
 
-bool isInDst(int year, int month, int mday, int hour) {
-  int y = year; // DS3231 uses two digit year (required here)
-  int x = (y + y/4 + 2) % 7; // remainder will identify which day of month
-  // is Sunday by subtracting x from the one
-  // or two week window. First two weeks for March
-  // and first week for November
-  bool dst;
-  // Test DST: BEGINS on 2nd Sunday of March @ 2:00 AM
-  if(month == 3 && mday == (14 - x) && hour >= 2) {
-    dst = true; // Daylight Savings Time is TRUE (add one hour)
-  }
-  if((month == 3 && mday > (14 - x)) || month > 3) {
-    dst = true;
-  }
-  // Test DST: ENDS on 1st Sunday of Nov @ 2:00 AM
-  if(month == 11 && mday == (7 - x) && hour >= 2) {
-    dst = false; // daylight savings time is FALSE (Standard time)
-  }
-  if((month == 11 && mday > (7 - x)) || month > 11 || month < 3) {
-    dst = false;
-  }
-  return dst;
+bool isInDst(int year, int month, int day, int hour) {
+  if(month < 3 || month > 10)
+    return false; // keine Sommerzeit in Jan, Feb, Nov, Dez
+  if(month > 3 && month < 10)
+    return true;  // Sommerzeit in Apr, Mai, Jun, Jul, Aug, Sep
+
+  if(month == 3 && (hour + 24 * day) >= (1 + TIME_ZONE + 24 * (31 - (5 * year / 4 + 4) % 7))
+  || month == 10 && (hour + 24 * day) < (1 + TIME_ZONE + 24 * (31 - (5 * year / 4 + 1) % 7)))
+    return true;
+  else
+    return false;
 }
 
 void loop() {
@@ -238,14 +228,16 @@ void loop() {
     if(minutes > 59) {
       minutes = 0;
       hours += 1;
-      // Note that when the minutes are 0 (i.e. it's the top of a new hour)
-      // then the start of the loop will read the actual time from the DS1307
-      // again.  Just to be safe though we'll also increment the hour and wrap
-      // back to 0 if it goes above 23 (i.e. past midnight).
-      if (hours > 23) {
-        hours = 0;
-      }
     }
+    // Note that when the minutes are 0 (i.e. it's the top of a new hour)
+    // then the start of the loop will read the actual time from the DS1307
+    // again.  Just to be safe though we'll also increment the hour and wrap
+    // back to 0 if it goes above 23 (i.e. past midnight).
+    if(hours > 23) {
+      hours = 0;
+      day += 1;
+    }
+
   // If the seconds go below 0 then the minutes should decrease and
   // the seconds should wrap back to 59.
   if(seconds < 0) {
@@ -257,9 +249,10 @@ void loop() {
     if(minutes < 0) {
       minutes = 59;
       hours -= 1;
-      if(hours < 0) {
-        hours = 23;
-      }
+    }
+    if(hours < 0) {
+      hours = 23;
+      day -= 1;
     }
 
   // Show the time on the display by turning it into a numeric
