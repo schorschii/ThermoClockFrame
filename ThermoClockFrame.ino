@@ -6,18 +6,21 @@
 #include <DallasTemperature.h>
 
 // Pin Definitions
-#define CLK  4  // clock display CLK
-#define DIO  5  // clock display DIO
-#define CLK2 6  // temp display CLK
-#define DIO2 7  // temp display DIO
+#define CLK_C 4  // clock display CLK
+#define DIO_C 5  // clock display DIO
+#define CLK_D 6  // date display CLK
+#define DIO_D 7  // date display DIO
+#define CLK_T 8  // temp display CLK
+#define DIO_T 9  // temp display DIO
 #define ONE_WIRE_BUS 12  // temp sensor bus
-#define BTN_PLUS  9  // button increase minutes
-#define BTN_MINUS 8  // button decrease minutes
+#define BTN_PLUS  0  // button increase minutes
+#define BTN_MINUS 0  // button decrease minutes
 
 #define TIME_24_HOUR      true
 
-TM1637Display display(CLK, DIO);
-TM1637Display display2(CLK2, DIO2);
+TM1637Display display_d(CLK_D, DIO_D);
+TM1637Display display_c(CLK_C, DIO_C);
+TM1637Display display_t(CLK_T, DIO_T);
 
 OneWire oneWire(ONE_WIRE_BUS);
 DallasTemperature sensors(&oneWire);
@@ -57,16 +60,19 @@ void setup() {
   Serial.println("ThermoClockFrame starting!");
 
   // Setup buttons
-  pinMode(BTN_PLUS, INPUT_PULLUP);
-  pinMode(BTN_MINUS, INPUT_PULLUP);
+  if(BTN_PLUS)  pinMode(BTN_PLUS, INPUT_PULLUP);
+  if(BTN_MINUS) pinMode(BTN_MINUS, INPUT_PULLUP);
 
   // Setup the displays
-  display.setBrightness(6);
-  display.clear();
-  display.showNumberDecEx(8888, 0b00000000, false, 4, 0);
-  display2.setBrightness(6);
-  display2.clear();
-  display2.showNumberDecEx(8888, 0b00000000, false, 4, 0);
+  display_d.setBrightness(6);
+  display_d.clear();
+  display_d.showNumberDecEx(8888, 0b00000000, false, 4, 0);
+  display_c.setBrightness(6);
+  display_c.clear();
+  display_c.showNumberDecEx(8888, 0b00000000, false, 4, 0);
+  display_t.setBrightness(6);
+  display_t.clear();
+  display_t.showNumberDecEx(8888, 0b00000000, false, 4, 0);
   delay(250);
 
   // Setup the temp sensor
@@ -80,8 +86,8 @@ void setup() {
   bool setClockTime = false; ///////////////////
   if(setClockTime) {
     Serial.println("Setting real-time clock time!");
-    t.hour=17; t.min=45; t.sec=50;
-    t.mday=1; t.mon=2; t.year=2026;
+    t.hour=23; t.min=3; t.sec=50;
+    t.mday=7; t.mon=3; t.year=2026;
     DS3231_set(t);
   }
 
@@ -271,8 +277,12 @@ void loop() {
       displayValue += 1200;
     }
   }
+  // Now print the date value to the display.
+  display_d.showNumberDecEx(day,   0b01010000, true, 2, 0);
+  display_d.showNumberDecEx(month, 0b01010000, true, 2, 2);
+
   // Now print the time value to the display.
-  display.showNumberDecEx(displayValue, 0b11100000, true, 4, 0);
+  display_c.showNumberDecEx(displayValue, 0b11100000, true, 4, 0);
 
   // Store updated time in RTC if changed via button
   if(saveTime) {
@@ -289,6 +299,6 @@ void loop() {
   }
 
   // Now print the temp value to the display.
-  display2.showNumberDecEx(sensors.getTempCByIndex(0), 0b00000000, false, 2, 0);
-  display2.setSegments(SEG_DEG, 2, 2);
+  display_t.showNumberDecEx(sensors.getTempCByIndex(0), 0b00000000, false, 2, 0);
+  display_t.setSegments(SEG_DEG, 2, 2);
 }
