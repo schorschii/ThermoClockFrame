@@ -6,15 +6,15 @@
 #include <DallasTemperature.h>
 
 // Pin Definitions
-#define CLK_C 4  // clock display CLK
-#define DIO_C 5  // clock display DIO
-#define CLK_D 6  // date display CLK
-#define DIO_D 7  // date display DIO
-#define CLK_T 8  // temp display CLK
-#define DIO_T 9  // temp display DIO
+#define DIO_C 4  // clock display DIO
+#define CLK_C 5  // clock display CLK
+#define DIO_D 6  // date display DIO
+#define CLK_D 7  // date display CLK
+#define DIO_T 8  // temp display DIO
+#define CLK_T 9  // temp display CLK
 #define ONE_WIRE_BUS 12  // temp sensor bus
-#define BTN_PLUS  0  // button increase minutes
-#define BTN_MINUS 0  // button decrease minutes
+#define BTN_PLUS  0  // button increase minutes (0 = not connected)
+#define BTN_MINUS 0  // button decrease minutes (0 = not connected)
 
 #define TIME_24_HOUR true
 #define TIME_ZONE    1 // (0=UTC, 1=MEZ)
