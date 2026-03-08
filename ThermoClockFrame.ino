@@ -19,6 +19,7 @@
 #define TIME_24_HOUR true
 #define TIME_ZONE    1 // (0=UTC, 1=MEZ)
 
+// Object init
 TM1637Display display_d(CLK_D, DIO_D);
 TM1637Display display_c(CLK_C, DIO_C);
 TM1637Display display_t(CLK_T, DIO_T);
@@ -35,9 +36,9 @@ const uint8_t SEG_DEG[] = {
 
 // Start off at 0:00:00 as a signal that the time should be read from
 // the DS1307 to initialize it.
-int year    = 0;
-int month   = 0;
-int day     = 0;
+int years   = 0;
+int months  = 0;
+int days    = 0;
 int hours   = 0;
 int minutes = 0;
 int seconds = 0;
@@ -87,8 +88,8 @@ void setup() {
   bool setClockTime = false; ///////////////////
   if(setClockTime) {
     Serial.println("Setting real-time clock time!");
-    t.hour=22; t.min=59; t.sec=55;
-    t.mday=31; t.mon=3; t.year=2026;
+    t.hour=17; t.min=3; t.sec=10;
+    t.mday=8; t.mon=3; t.year=2026;
     DS3231_set(t);
   }
 
@@ -117,14 +118,14 @@ void readTime() {
     Serial.print(".");
     Serial.println(t.sec);
     // Now set the hours and minutes
-    year    = t.year;
-    month   = t.mon;
-    day     = t.mday;
+    years   = t.year;
+    months  = t.mon;
+    days    = t.mday;
     hours   = t.hour;
     minutes = t.min;
     seconds = t.sec;
     // Apply CET daylight saving time (CEST)
-    if(isInDst(year, month, day, hours)) {
+    if(isInDst(years, months, days, hours)) {
       hours += 1;
     }
     // Validity check
@@ -242,15 +243,15 @@ void loop() {
     // back to 0 if it goes above 23 (i.e. past midnight).
     if(hours > 23) {
       hours = 0;
-      day += 1;
+      days += 1;
     }
-    if(day > maxMonthDay(month)) {
-      day = 1;
-      month += 1;
+    if(days > maxMonthDay(months)) {
+      days = 1;
+      months += 1;
     }
-    if(month > 12) {
-      month = 1;
-      year += 1;
+    if(months > 12) {
+      months = 1;
+      years += 1;
     }
 
   // If the seconds go below 0 then the minutes should decrease and
@@ -267,15 +268,15 @@ void loop() {
     }
     if(hours < 0) {
       hours = 23;
-      day -= 1;
+      days -= 1;
     }
-    if(day < 1) {
-      day = maxMonthDay(month - 1);
-      month -= 1;
+    if(days < 1) {
+      days = maxMonthDay(months - 1);
+      months -= 1;
     }
-    if(month < 1) {
-      month = 12;
-      year -= 1;
+    if(months < 1) {
+      months = 12;
+      years -= 1;
     }
 
   // Show the time on the display by turning it into a numeric
@@ -294,8 +295,8 @@ void loop() {
     }
   }
   // Now print the date value to the display.
-  display_d.showNumberDecEx(day,   0b01010000, true, 2, 0);
-  display_d.showNumberDecEx(month, 0b01010000, true, 2, 2);
+  display_d.showNumberDecEx(days,   0b01010000, true, 2, 0);
+  display_d.showNumberDecEx(months, 0b01010000, true, 2, 2);
 
   // Now print the time value to the display.
   display_c.showNumberDecEx(displayValue, 0b11100000, true, 4, 0);
@@ -304,7 +305,7 @@ void loop() {
   if(saveTime) {
     saveTime = false;
     // Check CET daylight saving time (CEST)
-    if(isInDst(year, month, day, hours)) {
+    if(isInDst(years, months, days, hours)) {
       t.hour = hours -1;
     } else {
       t.hour = hours;
