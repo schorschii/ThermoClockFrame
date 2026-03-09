@@ -7,11 +7,11 @@ It is assembled on the back of a picture frame, so that the LED displays are shi
 
 It uses:
 - DS3231 real-time clock module
-- 2x TM1637 displays for time & temp
-- Dallas temperature sensor (over OneWire bus)
-- 2x buttons for manual clock adjustment
+- 1, 2 or 3 TM1637 displays for date, time & temp
+- (optional) Dallas temperature sensor (over OneWire bus)
+- (optional) 3x buttons for manual clock adjustment
 
-Daylight saving time (DST) is automatically applied if the year, month, day and hour reported by the real-time clock is within the CEST range.
+Daylight saving time (DST) is automatically applied if the year, month, day and hour reported by the real-time clock is within the European CEST range.
 
 By long-pressing/holding a button, the minutes are increased/decreased automatically in 150ms interval.
 

@@ -8,13 +8,14 @@
 // Pin Definitions
 #define DIO_C 4  // clock display DIO
 #define CLK_C 5  // clock display CLK
-#define DIO_D 6  // date display DIO
-#define CLK_D 7  // date display CLK
-#define DIO_T 8  // temp display DIO
-#define CLK_T 9  // temp display CLK
-#define ONE_WIRE_BUS 12  // temp sensor bus
-#define BTN_PLUS  0  // button increase minutes (0 = not connected)
-#define BTN_MINUS 0  // button decrease minutes (0 = not connected)
+#define DIO_D 8  // date display DIO
+#define CLK_D 9  // date display CLK
+#define DIO_T A3  // temp display DIO
+#define CLK_T A2  // temp display CLK
+#define ONE_WIRE_BUS 10  // temp sensor bus
+#define BTN_PLUS  15  // button increase minutes (0 = not connected)
+#define BTN_MINUS 14  // button decrease minutes (0 = not connected)
+#define BTN_MOD   16  // button set day instead of minutes (0 = not connected)
 
 #define TIME_24_HOUR true
 #define TIME_ZONE    1 // (0=UTC, 1=MEZ)
@@ -64,6 +65,7 @@ void setup() {
   // Setup buttons
   if(BTN_PLUS)  pinMode(BTN_PLUS, INPUT_PULLUP);
   if(BTN_MINUS) pinMode(BTN_MINUS, INPUT_PULLUP);
+  if(BTN_MOD)   pinMode(BTN_MOD, INPUT_PULLUP);
 
   // Setup the displays
   display_d.setBrightness(6);
@@ -88,8 +90,8 @@ void setup() {
   bool setClockTime = false; ///////////////////
   if(setClockTime) {
     Serial.println("Setting real-time clock time!");
-    t.hour=17; t.min=3; t.sec=10;
-    t.mday=8; t.mon=3; t.year=2026;
+    t.hour=18; t.min=54; t.sec=10;
+    t.mday=9; t.mon=3; t.year=2026;
     DS3231_set(t);
   }
 
@@ -171,9 +173,14 @@ void loop() {
         startLowEachPlus1 = (millis() + waitMillisTillLong);  // Millis, wann das erste mal automatisch hochgezählt werden soll
         checkLongPress = true; // schaltet den "Modus" ein, so dass geprüft wird, ob der Button länger als x millis gedrückt wurde
 
-        if(readingPlus) minutes += 1;
-        else minutes -= 1;
-        seconds = 1;
+        if(digitalRead(BTN_MOD) == HIGH) {
+          if(readingPlus) minutes += 1;
+          else minutes -= 1;
+          seconds = 1;
+        } else {
+          if(readingPlus) days += 1;
+          else days -= 1;
+        }
         saveTime = true;
       }
 
@@ -189,9 +196,14 @@ void loop() {
       if(millis() - startLowEachPlus1 > waitMillisAfterEach) { // nach eingestellter Zeit für automatisches Hochzählen wird das hier ausgeführt
         //startLowEachPlus1 = startLowEachPlus1 + waitMillisAfterEach;  // Zeit hochsetzen für nächtes Automatisches erhöhen
 
-        if(readingPlus) minutes += 1;
-        else minutes -= 1;
-        seconds = 1;
+        if(digitalRead(BTN_MOD) == HIGH) {
+          if(readingPlus) minutes += 1;
+          else minutes -= 1;
+          seconds = 1;
+        } else {
+          if(readingPlus) days += 1;
+          else days -= 1;
+        }
         saveTime = true;
       }
     }
@@ -312,6 +324,9 @@ void loop() {
     }
     t.min  = minutes;
     t.sec  = seconds;
+    t.mday = days;
+    t.mon  = months;
+    t.year = years;
     DS3231_set(t);
   }
 
