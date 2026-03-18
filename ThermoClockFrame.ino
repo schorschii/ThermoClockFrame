@@ -50,6 +50,7 @@ unsigned long lastSecUpdate = 0;
 // Buttons
 bool btnState; // for Debounce
 bool lastBtnState  = LOW;
+bool lastBtnModState = LOW;
 int  debounceDelay = 50;
 unsigned long lastDebounceTime = 0;
 unsigned long startLow1;          // speichert Millis sobald der Button gedrückt wird
@@ -107,19 +108,11 @@ void readTime() {
   for(int i = 0; i < 3; i ++) {
     // Get the time from the clock
     DS3231_get(&t);
-    Serial.print("Date : ");
-    Serial.print(t.mday);
-    Serial.print("/");
-    Serial.print(t.mon);
-    Serial.print("/");
-    Serial.print(t.year);
-    Serial.print("\t Hour : ");
-    Serial.print(t.hour);
-    Serial.print(":");
-    Serial.print(t.min);
-    Serial.print(".");
-    Serial.println(t.sec);
     // Now set the hours and minutes
+    Serial.println(
+      String(t.mday)+"."+String(t.mon)+"."+String(t.year)
+      +" "+String(t.hour)+":"+String(t.min)+":"+String(t.sec)
+    );
     years   = t.year;
     months  = t.mon;
     days    = t.mday;
@@ -131,9 +124,16 @@ void readTime() {
       hours += 1;
     }
     // Validity check
-    if(t.year != 0) return;
+    if(t.year > 2000 && t.year < 2165) return;
     Serial.println("Got invalid date from RTC... trying again.");
-    delay(1000);
+    delay(500);
+  }
+  if(t.year == 1900) {
+    // RTC was resetted (e.g. battery removed)
+    // jump to min year
+    t.year = 2026;
+    DS3231_set(t);
+    Serial.println("Setted year to "+String(t.year));
   }
 }
 
@@ -169,6 +169,7 @@ void loop() {
     if(reading != btnState) { // debounce
       btnState = reading;  // debounce
       if(btnState) {  // debounce. LOW wenn Pull-Up genutzt wird. Bei Pull-Down muss es auf HIGH geändert werden
+
         startLow1 = millis(); // Millis zum Zeitpunkt, wenn der Button gedrückt wird
         startLowEachPlus1 = (millis() + waitMillisTillLong);  // Millis, wann das erste mal automatisch hochgezählt werden soll
         checkLongPress = true; // schaltet den "Modus" ein, so dass geprüft wird, ob der Button länger als x millis gedrückt wurde
@@ -182,10 +183,11 @@ void loop() {
           else days -= 1;
         }
         saveTime = true;
-      }
 
-      if(!btnState) {
+      } else {
+
         checkLongPress = false; // Modus zum prüfen ob lange gedrückt wurde wieder ausschalten
+
       }
     }
   }
@@ -306,9 +308,16 @@ void loop() {
       displayValue += 1200;
     }
   }
-  // Now print the date value to the display.
-  display_d.showNumberDecEx(days,   0b01010000, true, 2, 0);
-  display_d.showNumberDecEx(months, 0b01010000, true, 2, 2);
+  if(lastBtnModState == LOW && digitalRead(BTN_MOD) == HIGH) {
+    // Now print the year value to the display after releasing the MOD button.
+    display_d.showNumberDecEx(years, 0b00000000, true, 4, 0);
+    delay(1500);
+  } else {
+    // Now print the date value to the display.
+    display_d.showNumberDecEx(days,   0b01010000, true, 2, 0);
+    display_d.showNumberDecEx(months, 0b01010000, true, 2, 2);
+  }
+  lastBtnModState = digitalRead(BTN_MOD);
 
   // Now print the time value to the display.
   display_c.showNumberDecEx(displayValue, 0b11100000, true, 4, 0);
