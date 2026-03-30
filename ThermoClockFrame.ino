@@ -4,8 +4,11 @@
 #include <OneWire.h>
 #include <DallasTemperature.h>
 
-#define HT16K33_insteadof_TM1637 True
-#if HT16K33_insteadof_TM1637 == True
+// set to false to use TM1637 displays on defined pins
+// set to true to use HT16K33 displays on I2C
+#define HT16K33_insteadof_TM1637   true
+
+#if HT16K33_insteadof_TM1637 == true
   #include <HT16K33.h>
 #else
   #include <TM1637Display.h>
@@ -29,7 +32,7 @@
 // Object init
 const uint8_t SEG_DEG = SEG_A | SEG_B | SEG_F | SEG_G;  // °
 const uint8_t SEG_CEL = SEG_A | SEG_F | SEG_E | SEG_D;  // C
-#if HT16K33_insteadof_TM1637 == True
+#if HT16K33_insteadof_TM1637 == true
   HT16K33       display2_c(0x70);
   HT16K33       display2_d(0x71);
   HT16K33       display2_t(0x72);
@@ -69,50 +72,52 @@ bool checkLongPress      = false; // damit der Code für automatisches Hochzähl
 int  waitMillisTillLong  = 300;   // wie lange nach runter drücken gewartet werden soll, bis automatisches hochzählen beginnt
 int  waitMillisAfterEach = 150;   // alle wie viel Millis automatisch hochgezählt wird
 
-// With the HT16K33 library, it does not seem to be possible to write
-// custom chars and decimal points while using the pre-defined displayInt(),
-// as it is possible in TM1637 with showNumberDecEx().
-// That's why, the following helper functions are necessary for this display type.
-void HT16K33_date(int days, int months, uint8_t *ar) {
-  uint8_t d[2];
-  HT16K33_2digit(days, d);
-  uint8_t m[2];
-  HT16K33_2digit(months, m);
-  ar[0] = d[0]; ar[1] = d[1]|SEG_DP;
-  ar[2] = m[0]; ar[3] = m[1]|SEG_DP;
-}
-void HT16K33_temp(int temp, uint8_t *ar) {
-  uint8_t t[2];
-  HT16K33_2digit(temp, t);
-  ar[0] = t[0]; ar[1] = t[1];
-  ar[2] = SEG_DEG; ar[3] = SEG_CEL;
-}
-void HT16K33_2digit(uint8_t val, uint8_t *ar2) {
-  if(val <= 9) {
-    ar2[0] = HT16K33_digit(0);
-    ar2[1] = HT16K33_digit(val);
-  } else {
-    String strVal = String(val);
-    ar2[0] = HT16K33_digit(String(strVal[0]).toInt());
-    ar2[1] = HT16K33_digit(String(strVal[1]).toInt());
+#if HT16K33_insteadof_TM1637 == true
+  // With the HT16K33 library, it does not seem to be possible to write
+  // custom chars and decimal points while using the pre-defined displayInt(),
+  // as it is possible in TM1637 with showNumberDecEx().
+  // That's why, the following helper functions are necessary for this display type.
+  void HT16K33_date(int days, int months, uint8_t *ar) {
+    uint8_t d[2];
+    HT16K33_2digit(days, d);
+    uint8_t m[2];
+    HT16K33_2digit(months, m);
+    ar[0] = d[0]; ar[1] = d[1]|SEG_DP;
+    ar[2] = m[0]; ar[3] = m[1]|SEG_DP;
   }
-}
-uint8_t HT16K33_digit(uint8_t val) {
-  if(val == 0)      return SEG_A|SEG_B|SEG_C|SEG_D|SEG_E|SEG_F;
-  else if(val == 1) return SEG_B|SEG_C;
-  else if(val == 2) return SEG_A|SEG_B|SEG_G|SEG_E|SEG_D;
-  else if(val == 3) return SEG_A|SEG_B|SEG_C|SEG_D|SEG_G;
-  else if(val == 4) return SEG_F|SEG_G|SEG_B|SEG_C;
-  else if(val == 5) return SEG_A|SEG_F|SEG_G|SEG_C|SEG_D;
-  else if(val == 6) return SEG_A|SEG_F|SEG_E|SEG_D|SEG_C|SEG_G;
-  else if(val == 7) return SEG_A|SEG_B|SEG_C;
-  else if(val == 8) return SEG_A|SEG_B|SEG_C|SEG_D|SEG_E|SEG_F|SEG_G;
-  else if(val == 9) return SEG_A|SEG_B|SEG_C|SEG_D|SEG_F|SEG_G;
-}
+  void HT16K33_temp(int temp, uint8_t *ar) {
+    uint8_t t[2];
+    HT16K33_2digit(temp, t);
+    ar[0] = t[0]; ar[1] = t[1];
+    ar[2] = SEG_DEG; ar[3] = SEG_CEL;
+  }
+  void HT16K33_2digit(uint8_t val, uint8_t *ar2) {
+    if(val <= 9) {
+      ar2[0] = HT16K33_digit(0);
+      ar2[1] = HT16K33_digit(val);
+    } else {
+      String strVal = String(val);
+      ar2[0] = HT16K33_digit(String(strVal[0]).toInt());
+      ar2[1] = HT16K33_digit(String(strVal[1]).toInt());
+    }
+  }
+  uint8_t HT16K33_digit(uint8_t val) {
+    if(val == 0)      return SEG_A|SEG_B|SEG_C|SEG_D|SEG_E|SEG_F;
+    else if(val == 1) return SEG_B|SEG_C;
+    else if(val == 2) return SEG_A|SEG_B|SEG_G|SEG_E|SEG_D;
+    else if(val == 3) return SEG_A|SEG_B|SEG_C|SEG_D|SEG_G;
+    else if(val == 4) return SEG_F|SEG_G|SEG_B|SEG_C;
+    else if(val == 5) return SEG_A|SEG_F|SEG_G|SEG_C|SEG_D;
+    else if(val == 6) return SEG_A|SEG_F|SEG_E|SEG_D|SEG_C|SEG_G;
+    else if(val == 7) return SEG_A|SEG_B|SEG_C;
+    else if(val == 8) return SEG_A|SEG_B|SEG_C|SEG_D|SEG_E|SEG_F|SEG_G;
+    else if(val == 9) return SEG_A|SEG_B|SEG_C|SEG_D|SEG_F|SEG_G;
+  }
+#endif
 
 void setup() {
   Serial.begin(9600);
-  Serial.println("ThermoClockFrame starting!");
+  while(!Serial);  // wait for Serial
 
   // Setup buttons
   if(BTN_PLUS)  pinMode(BTN_PLUS, INPUT_PULLUP);
@@ -120,7 +125,8 @@ void setup() {
   if(BTN_MOD)   pinMode(BTN_MOD, INPUT_PULLUP);
 
   // Setup the displays
-  #if HT16K33_insteadof_TM1637 == True
+  #if HT16K33_insteadof_TM1637 == true
+    Serial.println("ThermoClockFrame HT16K33 starting!");
     display2_c.begin();
     display2_c.displayOn();
     display2_c.displayInt(8888);
@@ -131,6 +137,7 @@ void setup() {
     display2_t.displayOn();
     display2_t.displayInt(8888);
   #else
+    Serial.println("ThermoClockFrame TM1637 starting!");
     display_c.setBrightness(6);
     display_c.clear();
     display_c.showNumberDecEx(8888, 0b00000000, false, 4, 0);
@@ -373,7 +380,7 @@ void loop() {
   }
   if(lastBtnModState == LOW && digitalRead(BTN_MOD) == HIGH) {
     // Now print the year value to the display after releasing the MOD button.
-    #if HT16K33_insteadof_TM1637 == True
+    #if HT16K33_insteadof_TM1637 == true
       display2_d.displayInt(years);
     #else
       display_d.showNumberDecEx(years, 0b00000000, true, 4, 0);
@@ -381,7 +388,7 @@ void loop() {
     delay(1500);
   } else {
     // Now print the date value to the display.
-    #if HT16K33_insteadof_TM1637 == True
+    #if HT16K33_insteadof_TM1637 == true
       uint8_t ar[4];
       HT16K33_date(days, months, ar);
       display2_d.displayRaw(ar);
@@ -393,7 +400,7 @@ void loop() {
   lastBtnModState = digitalRead(BTN_MOD);
 
   // Now print the time value to the display.
-  #if HT16K33_insteadof_TM1637 == True
+  #if HT16K33_insteadof_TM1637 == true
     display2_c.displayInt(displayValue);
     display2_c.displayColon(1);
   #else
@@ -418,7 +425,7 @@ void loop() {
   }
 
   // Now print the temp value to the display.
-  #if HT16K33_insteadof_TM1637 == True
+  #if HT16K33_insteadof_TM1637 == true
     uint8_t ar[4];
     HT16K33_temp(sensors.getTempCByIndex(0), ar);
     display2_t.displayRaw(ar);
