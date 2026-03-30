@@ -6,7 +6,7 @@
 
 // set to false to use TM1637 displays on defined pins
 // set to true to use HT16K33 displays on I2C
-#define HT16K33_insteadof_TM1637   true
+#define HT16K33_insteadof_TM1637   false
 
 #if HT16K33_insteadof_TM1637 == true
   #include <HT16K33.h>
@@ -70,7 +70,7 @@ unsigned long startLow1;          // speichert Millis sobald der Button gedrück
 unsigned long startLowEachPlus1;  // speichert Zeit (Millis) wann das nächste mal automatisch erhöht werden soll
 bool checkLongPress      = false; // damit der Code für automatisches Hochzählen nur ausgeführt wird, wenn der Button runter gedrückt wird. Ist entweder true oder false
 int  waitMillisTillLong  = 300;   // wie lange nach runter drücken gewartet werden soll, bis automatisches hochzählen beginnt
-int  waitMillisAfterEach = 150;   // alle wie viel Millis automatisch hochgezählt wird
+int  waitMillisAfterEach = 100;   // alle wie viel Millis automatisch hochgezählt wird
 
 #if HT16K33_insteadof_TM1637 == true
   // With the HT16K33 library, it does not seem to be possible to write
@@ -266,7 +266,7 @@ void loop() {
   if(checkLongPress == true) { // wenn der Button runter gedrückt wurde, wird angefangen zu prüfen
     if(millis() - startLow1 > waitMillisTillLong) {  // nach der eingestellten Zeit wird wird etwas erstmals ausgeführt
       if(millis() - startLowEachPlus1 > waitMillisAfterEach) { // nach eingestellter Zeit für automatisches Hochzählen wird das hier ausgeführt
-        //startLowEachPlus1 = startLowEachPlus1 + waitMillisAfterEach;  // Zeit hochsetzen für nächtes Automatisches erhöhen
+        startLowEachPlus1 = startLowEachPlus1 + waitMillisAfterEach;  // Zeit hochsetzen für nächtes Automatisches erhöhen
 
         if(digitalRead(BTN_MOD) == HIGH) {
           if(readingPlus) minutes += 1;
@@ -363,19 +363,17 @@ void loop() {
       years -= 1;
     }
 
-  // Show the time on the display by turning it into a numeric
-  // value, like 3:30 turns into 330, by multiplying the hour by
-  // 100 and then adding the minutes.
-  int displayValue = hours*100 + minutes;
+  int displayHours = hours;
+  int displayMinutes = minutes;
   // Do 24 hour to 12 hour format conversion when required.
   if(!TIME_24_HOUR) {
     // Handle when hours are past 12 by subtracting 12 hours (1200 value).
-    if(hours > 12) {
-      displayValue -= 1200;
+    if(displayHours > 12) {
+      displayHours -= 12;
     }
     // Handle hour 0 (midnight) being shown as 12.
-    else if(hours == 0) {
-      displayValue += 1200;
+    else if(displayHours == 0) {
+      displayHours += 12;
     }
   }
   if(lastBtnModState == LOW && digitalRead(BTN_MOD) == HIGH) {
@@ -401,10 +399,10 @@ void loop() {
 
   // Now print the time value to the display.
   #if HT16K33_insteadof_TM1637 == true
-    display2_c.displayInt(displayValue);
-    display2_c.displayColon(1);
+    display2_c.displayTime(displayHours, displayMinutes, true, false);
   #else
-    display_c.showNumberDecEx(displayValue, 0b11100000, true, 4, 0);
+    display_c.showNumberDecEx(displayHours, 0b01000000, true, 2, 0);
+    display_c.showNumberDecEx(displayMinutes, 0b00000000, true, 2, 2);
   #endif
 
   // Store updated time in RTC if changed via button
