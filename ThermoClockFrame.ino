@@ -117,7 +117,7 @@ int  waitMillisAfterEach = 100;   // alle wie viel Millis automatisch hochgezäh
 
 void setup() {
   Serial.begin(9600);
-  while(!Serial);  // wait for Serial
+  delay(1000);  // wait for Serial
 
   // Setup buttons
   if(BTN_PLUS)  pinMode(BTN_PLUS, INPUT_PULLUP);
