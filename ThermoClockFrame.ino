@@ -1,50 +1,50 @@
 #include <Wire.h>
 #include <ds3231.h>
 
+#include <HT16K33.h>
+#include <TM1637Display.h>
+
 #include <OneWire.h>
 #include <DallasTemperature.h>
 
-// set to false to use TM1637 displays on defined pins
-// set to true to use HT16K33 displays on I2C
-#define HT16K33_insteadof_TM1637   false
 
-#if HT16K33_insteadof_TM1637 == true
-  #include <HT16K33.h>
-#else
-  #include <TM1637Display.h>
-#endif
-
-// Pin Definitions
+// Pin definitions
 #define DIO_C 4  // clock display DIO
 #define CLK_C 5  // clock display CLK
-#define DIO_D 8  // date display DIO
-#define CLK_D 9  // date display CLK
-#define DIO_T A3  // temp display DIO
-#define CLK_T A2  // temp display CLK
-#define ONE_WIRE_BUS 10  // temp sensor bus
+#define DIO_D 6  // date display DIO
+#define CLK_D 7  // date display CLK
+#define DIO_T1 A3 // temp display DIO
+#define CLK_T1 A2 // temp display CLK
+#define DIO_T2 A1 // temp2 display DIO
+#define CLK_T2 A0 // temp2 display CLK
+#define BUS_T1 10 // temp sensor bus
+#define BUS_T2 9  // temp2 sensor bus
 #define BTN_PLUS  15  // button increase minutes (0 = not connected)
 #define BTN_MINUS 14  // button decrease minutes (0 = not connected)
 #define BTN_MOD   16  // button set day instead of minutes (0 = not connected)
 
+// Time settings
 #define TIME_24_HOUR true
 #define TIME_ZONE    1 // (0=UTC, 1=MEZ)
 
 // Object init
 const uint8_t SEG_DEG = SEG_A | SEG_B | SEG_F | SEG_G;  // °
 const uint8_t SEG_CEL = SEG_A | SEG_F | SEG_E | SEG_D;  // C
-#if HT16K33_insteadof_TM1637 == true
-  HT16K33       display2_c(0x70);
-  HT16K33       display2_d(0x71);
-  HT16K33       display2_t(0x72);
-#else
-  TM1637Display display_c(CLK_C, DIO_C);
-  TM1637Display display_d(CLK_D, DIO_D);
-  TM1637Display display_t(CLK_T, DIO_T);
-  const uint8_t SEG_DEG_CEL[] = { SEG_DEG, SEG_CEL };
-#endif
+const uint8_t SEG_DEG_CEL[] = { SEG_DEG, SEG_CEL };
 
-OneWire oneWire(ONE_WIRE_BUS);
-DallasTemperature sensors(&oneWire);
+HT16K33       display2_c(0x70);
+HT16K33       display2_d(0x71);
+HT16K33       display2_t1(0x72);
+HT16K33       display2_t2(0x73);
+TM1637Display display_c(CLK_C, DIO_C);
+TM1637Display display_d(CLK_D, DIO_D);
+TM1637Display display_t1(CLK_T1, DIO_T1);
+TM1637Display display_t2(CLK_T2, DIO_T2);
+
+OneWire oneWire1(BUS_T1);
+DallasTemperature sensor1(&oneWire1);
+OneWire oneWire2(BUS_T2);
+DallasTemperature sensor2(&oneWire2);
 
 struct ts t;
 
@@ -72,11 +72,10 @@ bool checkLongPress      = false; // damit der Code für automatisches Hochzähl
 int  waitMillisTillLong  = 300;   // wie lange nach runter drücken gewartet werden soll, bis automatisches hochzählen beginnt
 int  waitMillisAfterEach = 100;   // alle wie viel Millis automatisch hochgezählt wird
 
-#if HT16K33_insteadof_TM1637 == true
-  // With the HT16K33 library, it does not seem to be possible to write
-  // custom chars and decimal points while using the pre-defined displayInt(),
-  // as it is possible in TM1637 with showNumberDecEx().
-  // That's why, the following helper functions are necessary for this display type.
+// With the HT16K33 library, it does not seem to be possible to write
+// custom chars and decimal points while using the pre-defined displayInt(),
+// as it is possible in TM1637 with showNumberDecEx().
+// That's why, the following helper functions are necessary for this display type.
   void HT16K33_date(int days, int months, uint8_t *ar) {
     uint8_t d[2];
     HT16K33_2digit(days, d);
@@ -113,11 +112,11 @@ int  waitMillisAfterEach = 100;   // alle wie viel Millis automatisch hochgezäh
     else if(val == 8) return SEG_A|SEG_B|SEG_C|SEG_D|SEG_E|SEG_F|SEG_G;
     else if(val == 9) return SEG_A|SEG_B|SEG_C|SEG_D|SEG_F|SEG_G;
   }
-#endif
 
 void setup() {
   Serial.begin(9600);
   delay(1000);  // wait for Serial
+  Serial.println("ThermoClockFrame starting!");
 
   // Setup buttons
   if(BTN_PLUS)  pinMode(BTN_PLUS, INPUT_PULLUP);
@@ -125,33 +124,35 @@ void setup() {
   if(BTN_MOD)   pinMode(BTN_MOD, INPUT_PULLUP);
 
   // Setup the displays
-  #if HT16K33_insteadof_TM1637 == true
-    Serial.println("ThermoClockFrame HT16K33 starting!");
-    display2_c.begin();
-    display2_c.displayOn();
-    display2_c.displayInt(8888);
-    display2_d.begin();
-    display2_d.displayOn();
-    display2_d.displayInt(8888);
-    display2_t.begin();
-    display2_t.displayOn();
-    display2_t.displayInt(8888);
-  #else
-    Serial.println("ThermoClockFrame TM1637 starting!");
-    display_c.setBrightness(6);
-    display_c.clear();
-    display_c.showNumberDecEx(8888, 0b00000000, false, 4, 0);
-    display_d.setBrightness(6);
-    display_d.clear();
-    display_d.showNumberDecEx(8888, 0b00000000, false, 4, 0);
-    display_t.setBrightness(6);
-    display_t.clear();
-    display_t.showNumberDecEx(8888, 0b00000000, false, 4, 0);
-  #endif
-  delay(250);
+  display2_c.begin();
+  display2_c.displayOn();
+  display2_c.displayInt(8888);
+  display2_d.begin();
+  display2_d.displayOn();
+  display2_d.displayInt(8888);
+  display2_t1.begin();
+  display2_t1.displayOn();
+  display2_t1.displayInt(8888);
+  display2_t2.begin();
+  display2_t2.displayOn();
+  display2_t2.displayInt(8888);
+  ///
+  display_c.setBrightness(6);
+  display_c.clear();
+  display_c.showNumberDecEx(8888, 0b00000000, false, 4, 0);
+  display_d.setBrightness(6);
+  display_d.clear();
+  display_d.showNumberDecEx(8888, 0b00000000, false, 4, 0);
+  display_t1.setBrightness(3);
+  display_t1.clear();
+  display_t1.showNumberDecEx(8888, 0b00000000, false, 4, 0);
+  display_t2.setBrightness(3);
+  display_t2.clear();
+  display_t2.showNumberDecEx(8888, 0b00000000, false, 4, 0);
 
-  // Setup the temp sensor
-  sensors.begin();
+  // Setup the temp sensors
+  sensor1.begin();
+  sensor2.begin();
 
   // Setup the real-time clock
   Wire.begin();
@@ -171,7 +172,8 @@ void setup() {
   lastSecUpdate = millis();
 
   // Initial temp read
-  sensors.requestTemperatures();
+  sensor1.requestTemperatures();
+  sensor2.requestTemperatures();
 }
 
 void readTime() {
@@ -300,7 +302,8 @@ void loop() {
     if(!checkLongPress) {
       readTime();
 
-      sensors.requestTemperatures();
+      sensor1.requestTemperatures();
+      sensor2.requestTemperatures();
     }
 
     // Blink the colon by flipping its value every loop iteration
@@ -378,32 +381,26 @@ void loop() {
   }
   if(lastBtnModState == LOW && digitalRead(BTN_MOD) == HIGH) {
     // Now print the year value to the display after releasing the MOD button.
-    #if HT16K33_insteadof_TM1637 == true
-      display2_d.displayInt(years);
-    #else
-      display_d.showNumberDecEx(years, 0b00000000, true, 4, 0);
-    #endif
+    display2_d.displayInt(years);
+    ///
+    display_d.showNumberDecEx(years, 0b00000000, true, 4, 0);
     delay(1500);
   } else {
     // Now print the date value to the display.
-    #if HT16K33_insteadof_TM1637 == true
-      uint8_t ar[4];
-      HT16K33_date(days, months, ar);
-      display2_d.displayRaw(ar);
-    #else
-      display_d.showNumberDecEx(days,   0b01010000, true, 2, 0);
-      display_d.showNumberDecEx(months, 0b01010000, true, 2, 2);
-    #endif
+    uint8_t ar[4];
+    HT16K33_date(days, months, ar);
+    display2_d.displayRaw(ar);
+    ///
+    display_d.showNumberDecEx(days,   0b01010000, true, 2, 0);
+    display_d.showNumberDecEx(months, 0b01010000, true, 2, 2);
   }
   lastBtnModState = digitalRead(BTN_MOD);
 
   // Now print the time value to the display.
-  #if HT16K33_insteadof_TM1637 == true
-    display2_c.displayTime(displayHours, displayMinutes, true, false);
-  #else
-    display_c.showNumberDecEx(displayHours, 0b01000000, true, 2, 0);
-    display_c.showNumberDecEx(displayMinutes, 0b00000000, true, 2, 2);
-  #endif
+  display2_c.displayTime(displayHours, displayMinutes, true, false);
+  ///
+  display_c.showNumberDecEx(displayHours, 0b01000000, true, 2, 0);
+  display_c.showNumberDecEx(displayMinutes, 0b00000000, true, 2, 2);
 
   // Store updated time in RTC if changed via button
   if(saveTime) {
@@ -423,12 +420,14 @@ void loop() {
   }
 
   // Now print the temp value to the display.
-  #if HT16K33_insteadof_TM1637 == true
-    uint8_t ar[4];
-    HT16K33_temp(sensors.getTempCByIndex(0), ar);
-    display2_t.displayRaw(ar);
-  #else
-    display_t.showNumberDecEx(sensors.getTempCByIndex(0), 0b00000000, false, 2, 0);
-    display_t.setSegments(SEG_DEG_CEL, 2, 2);
-  #endif
+  uint8_t ar[4];
+  HT16K33_temp(sensor1.getTempCByIndex(0), ar);
+  display2_t1.displayRaw(ar);
+  HT16K33_temp(sensor2.getTempCByIndex(0), ar);
+  display2_t2.displayRaw(ar);
+  ///
+  display_t1.showNumberDecEx(sensor1.getTempCByIndex(0), 0b00000000, false, 2, 0);
+  display_t1.setSegments(SEG_DEG_CEL, 2, 2);
+  display_t2.showNumberDecEx(sensor2.getTempCByIndex(0), 0b00000000, false, 2, 0);
+  display_t2.setSegments(SEG_DEG_CEL, 2, 2);
 }

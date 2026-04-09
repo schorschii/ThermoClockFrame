@@ -11,8 +11,8 @@ By long-pressing/holding a button, the minutes are increased/decreased automatic
 
 ## Components
 - DS3231 real-time clock module
-- 1, 2 or 3 TM1637 or HT16K33 LED displays for date, time and/or temperature
-- (optional) Dallas temperature sensor (over OneWire bus)
+- 1, 2, 3 or 4 TM1637 or HT16K33 LED displays for date, time and/or 2x temperature
+- (optional) 1 or 2 Dallas temperature sensor (over OneWire bus)
 - (optional) 3x buttons for manual clock adjustment
 
 ## Libraries
@@ -33,14 +33,17 @@ If you want to get one exemplar pre-assembled, [contact me](https://georg-sieber
    - TM1637
      - time: pin 4 & 5
      - date: pin 8 & 9
-     - temp: pin A3 & A2
+     - temp1: pin A3 & A2
+     - temp2: pin A1 & A0
    - HT16K33 to I2C bus with addresses:
      - time: 0x70 (no jumper)
      - date: 0x71 (jumper A0)
-     - temp: 0x72 (jumper A1)
+     - temp1: 0x72 (jumper A1)
+     - temp2: 0x73 (jumper A0+A1)
 3. Buttons:
    - Plus: pin 15 & GND
    - Minus: pin 14 & GND
    - Mod: pin 16 & GND
 4. Temperature sensor:
-   - pin 10 (+ 4,7K to VCC)
+   - temp1: pin 10 (+ 4,7K to VCC)
+   - temp2: pin 9 (+ 4,7K to VCC)
