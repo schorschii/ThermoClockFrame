@@ -420,14 +420,19 @@ void loop() {
   }
 
   // Now print the temp value to the display.
+  int t1 = sensor1.getTempCByIndex(0);
+  if(t1 == -127) t1 = 22; if(t1 < -9) t1 = -9;
+  int t2 = sensor2.getTempCByIndex(0);
+  if(t2 == -127) t2 = 22; if(t2 < -9) t2 = -9;
+  ///
   uint8_t ar[4];
-  HT16K33_temp(sensor1.getTempCByIndex(0), ar);
+  HT16K33_temp(t1, ar);
   display2_t1.displayRaw(ar);
-  HT16K33_temp(sensor2.getTempCByIndex(0), ar);
+  HT16K33_temp(t2, ar);
   display2_t2.displayRaw(ar);
   ///
-  display_t1.showNumberDecEx(sensor1.getTempCByIndex(0), 0b00000000, false, 2, 0);
+  display_t1.showNumberDecEx(t1, 0b00000000, false, 2, 0);
   display_t1.setSegments(SEG_DEG_CEL, 2, 2);
-  display_t2.showNumberDecEx(sensor2.getTempCByIndex(0), 0b00000000, false, 2, 0);
+  display_t2.showNumberDecEx(t2, 0b00000000, false, 2, 0);
   display_t2.setSegments(SEG_DEG_CEL, 2, 2);
 }
